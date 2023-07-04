@@ -13,7 +13,8 @@
   },
   "dependencies": {
     "@shopify/app": "3.47.2",
-    "@shopify/cli": "3.47.2"
+    "@shopify/cli": "3.47.2",
+    "@shopify/react-form": "^2.5.5"
   },
   "author": "urchin",
   "private": true,
