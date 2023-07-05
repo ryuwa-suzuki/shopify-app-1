@@ -18,6 +18,7 @@ use Shopify\Exception\InvalidWebhookException;
 use Shopify\Utils;
 use Shopify\Webhooks\Registry;
 use Shopify\Webhooks\Topics;
+use App\Http\Controllers\ReviewController;
 
 /*
 |--------------------------------------------------------------------------
@@ -125,6 +126,12 @@ Route::get('/api/products/create', function (Request $request) {
         return response()->json(["success" => $success, "error" => $error], $code);
     }
 })->middleware('shopify.auth');
+
+Route::middleware('shopify.auth')->group(function () {
+    Route::post('/api/reviews/create', [ReviewController::class, 'create']);
+});
+
+Route::get('/api/csrf-token', fn () => ['csrf_token' => csrf_token()]);
 
 Route::post('/api/webhooks', function (Request $request) {
     try {
