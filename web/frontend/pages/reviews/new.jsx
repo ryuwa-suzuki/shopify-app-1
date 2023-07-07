@@ -3,12 +3,12 @@ import { TitleBar } from "@shopify/app-bridge-react";
 import { ReviewForm } from "../../components";
 
 export default function ManageCode() {
-  const breadcrumbs = [{ content: "QR codes", url: "/" }];
+  const breadcrumbs = [{ content: "レビュー", url: "/" }];
 
   return (
     <Page>
       <TitleBar
-        title="Create new QR code"
+        title="レビュー新規登録"
         breadcrumbs={breadcrumbs}
         primaryAction={null}
       />
