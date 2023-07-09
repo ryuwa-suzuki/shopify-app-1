@@ -14,6 +14,7 @@ import {
   TextStyle,
   Layout,
   EmptyState,
+  RangeSlider
 } from "@shopify/polaris";
 import {
   ContextualSaveBar,
@@ -23,7 +24,7 @@ import {
 import { ImageMajor, AlertMinor } from "@shopify/polaris-icons";
 
 /* Import the useAuthenticatedFetch hook included in the Node app template */
-import { useAuthenticatedFetch, useAppQuery } from "../hooks";
+import { useAuthenticatedFetch, useAppQuery, useCsrf } from "../hooks";
 
 /* Import custom hooks for forms */
 import { useForm, useField, notEmptyString } from "@shopify/react-form";
@@ -37,13 +38,15 @@ const NO_DISCOUNT_OPTION = { label: "No discount", value: "" };
 */
 const DISCOUNT_CODES = {};
 
-export function ReviewForm({ QRCode: InitialQRCode }) {
-  const [QRCode, setQRCode] = useState(InitialQRCode);
+export function ReviewForm({ Review: InitialReview }) {
+  const [Review, setReview] = useState(InitialReview);
   const [showResourcePicker, setShowResourcePicker] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState(QRCode?.product);
+  const [selectedProduct, setSelectedProduct] = useState(Review?.product);
   const navigate = useNavigate();
   const fetch = useAuthenticatedFetch();
-  const deletedProduct = QRCode?.product?.title === "Deleted product";
+  const csrf = useCsrf();
+
+  const deletedProduct = Review?.product?.title === "Deleted product";
 
 
   /*
@@ -51,7 +54,35 @@ export function ReviewForm({ QRCode: InitialQRCode }) {
 
     It will be replaced by a different function when the frontend is connected to the backend.
   */
-  const onSubmit = (body) => console.log("submit", body);
+  const onSubmit = useCallback(async (body) => {
+    // setIsLoading(true);
+    const csrfToken = await csrf();
+    const response = await fetch("/api/reviews/create", {
+      method: 'POST',
+      body: JSON.stringify({
+        ...body
+      }),
+      headers: {
+        "Content-Type": "application/json",
+        'X-CSRF-TOKEN': csrfToken
+      }
+    });
+    if (response.ok) {
+      console.log('ok')
+      // await refetchProductCount();
+      // setToastProps({
+      //   content: t("ProductsCard.productsCreatedToast", {
+      //     count: productsCount,
+      //   }),
+      // });
+    } else {
+      // setIsLoading(false);
+      // setToastProps({
+      //   content: t("ProductsCard.errorCreatingProductsToast"),
+      //   error: true,
+      // });
+    }
+  })
 
 
   /*
@@ -69,9 +100,8 @@ export function ReviewForm({ QRCode: InitialQRCode }) {
       productId,
       variantId,
       handle,
-      discountId,
-      discountCode,
-      destination,
+      content,
+      review
     },
     dirty,
     reset,
@@ -81,27 +111,34 @@ export function ReviewForm({ QRCode: InitialQRCode }) {
   } = useForm({
     fields: {
       title: useField({
-        value: QRCode?.title || "",
-        validates: [notEmptyString("Please name your QR code")],
+        value: Review?.title || "",
+        validates: [notEmptyString("レビューのタイトルを入力してください")],
+      }),
+      content: useField({
+        value: Review?.content || "",
+        validates: [notEmptyString("レビューを入力してください")],
+      }),
+      review: useField({
+        value: Review?.review || 1,
+        defaultValue: 1,
+        output: true
       }),
       productId: useField({
-        value: deletedProduct ? "Deleted product" : QRCode?.product?.id || "",
+        value: deletedProduct ? "Deleted product" : Review?.product?.id || "",
         validates: [notEmptyString("Please select a product")],
       }),
-      variantId: useField(QRCode?.variantId || ""),
-      handle: useField(QRCode?.handle || ""),
+      variantId: useField(Review?.variantId || ""),
+      handle: useField(Review?.handle || ""),
       destination: useField(
-        QRCode?.destination ? [QRCode.destination] : ["product"]
-      ),
-      discountId: useField(QRCode?.discountId || NO_DISCOUNT_OPTION.value),
-      discountCode: useField(QRCode?.discountCode || ""),
+        Review?.destination ? [Review.destination] : ["product"]
+      )
     },
     onSubmit,
   });
 
-  const QRCodeURL = QRCode
-    ? new URL(`/qrcodes/${QRCode.id}/image`, location.toString()).toString()
-    : null;
+  // const QRCodeURL = QRCode
+  //   ? new URL(`/qrcodes/${QRCode.id}/image`, location.toString()).toString()
+  //   : null;
 
   /*
     This function is called with the selected product whenever the user clicks "Add" in the ResourcePicker.
@@ -124,14 +161,19 @@ export function ReviewForm({ QRCode: InitialQRCode }) {
     setShowResourcePicker(false);
   }, []);
 
+  // const handleReviewChange = useCallback(
+  //   (value) => setRangeValue(value),
+  //   [],
+  // );
+
 
   /*
     This function updates the form state whenever a user selects a new discount option.
   */
-  const handleDiscountChange = useCallback((id) => {
-    discountId.onChange(id);
-    discountCode.onChange(DISCOUNT_CODES[id] || "");
-  }, []);
+  // const handleDiscountChange = useCallback((id) => {
+  //   discountId.onChange(id);
+  //   discountCode.onChange(DISCOUNT_CODES[id] || "");
+  // }, []);
 
 
   /*
@@ -170,22 +212,22 @@ export function ReviewForm({ QRCode: InitialQRCode }) {
 
     It uses data from the App Bridge context as well as form state to construct destination URLs using the URL helpers you created.
   */
-  const goToDestination = useCallback(() => {
-    if (!selectedProduct) return;
-    const data = {
-      shopUrl: shopData?.shop.url,
-      productHandle: handle.value || selectedProduct.handle,
-      discountCode: discountCode.value || undefined,
-      variantId: variantId.value,
-    };
+  // const goToDestination = useCallback(() => {
+  //   if (!selectedProduct) return;
+  //   const data = {
+  //     shopUrl: shopData?.shop.url,
+  //     productHandle: handle.value || selectedProduct.handle,
+  //     discountCode: discountCode.value || undefined,
+  //     variantId: variantId.value,
+  //   };
 
-    const targetURL =
-      deletedProduct || destination.value[0] === "product"
-        ? productViewURL(data)
-        : productCheckoutURL(data);
+  //   const targetURL =
+  //     deletedProduct || destination.value[0] === "product"
+  //       ? productViewURL(data)
+  //       : productCheckoutURL(data);
 
-    window.open(targetURL, "_blank", "noreferrer,noopener");
-  }, [QRCode, selectedProduct, destination, discountCode, handle, variantId, shopData]);
+  //   window.open(targetURL, "_blank", "noreferrer,noopener");
+  // }, [QRCode, selectedProduct, destination, discountCode, handle, variantId, shopData]);
 
 
   /*
@@ -230,13 +272,33 @@ export function ReviewForm({ QRCode: InitialQRCode }) {
               fullWidth
             />
             <FormLayout>
-              <Card sectioned title="Title">
-                <TextField
-                  {...title}
-                  label="Title"
-                  labelHidden
-                  helpText="Only store staff can see this title"
-                />
+              <Card sectioned title="Reviews">
+                <Card.Section>
+                  <TextField
+                    {...title}
+                    label="レビュータイトル"
+                    labelHidden
+                    helpText="レビューのタイトルを入力してください"
+                  />
+                </Card.Section>
+                <Card.Section>
+                  <TextField
+                    {...content}
+                    label="レビュー"
+                    labelHidden
+                    helpText="レビューを入力してください"
+                    multiline={10}
+                  />
+                </Card.Section>
+
+                <Card.Section>
+                  <RangeSlider
+                    {...review}
+                    label="評価"
+                    min={1}
+                    max={5}
+                  />
+                </Card.Section>
               </Card>
 
               <Card
@@ -295,7 +357,7 @@ export function ReviewForm({ QRCode: InitialQRCode }) {
                     </Stack>
                   )}
                 </Card.Section>
-                <Card.Section title="Scan Destination">
+                {/* <Card.Section title="Scan Destination">
                   <ChoiceList
                     title="Scan destination"
                     titleHidden
@@ -309,9 +371,9 @@ export function ReviewForm({ QRCode: InitialQRCode }) {
                     selected={destination.value}
                     onChange={destination.onChange}
                   />
-                </Card.Section>
+                </Card.Section> */}
               </Card>
-              <Card
+              {/* <Card
                 sectioned
                 title="Discount"
                 actions={[
@@ -338,11 +400,11 @@ export function ReviewForm({ QRCode: InitialQRCode }) {
                   disabled={isLoadingShopData || shopDataError}
                   labelHidden
                 />
-              </Card>
+              </Card> */}
             </FormLayout>
           </Form>
         </Layout.Section>
-        <Layout.Section secondary>
+        {/* <Layout.Section secondary>
           <Card sectioned title="QR code">
             {QRCode ? (
               <EmptyState imageContained={true} image={QRCodeURL} />
@@ -382,7 +444,7 @@ export function ReviewForm({ QRCode: InitialQRCode }) {
               Delete QR code
             </Button>
           )}
-        </Layout.Section>
+        </Layout.Section> */}
       </Layout>
     </Stack>
   );
