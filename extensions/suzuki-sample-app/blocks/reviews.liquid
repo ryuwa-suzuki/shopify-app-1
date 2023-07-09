@@ -1,0 +1,15 @@
+{% comment %} <form method="post" action="http://en-tom-smooth-parents.trycloudflare.com/api/reviews/create"> {% endcomment %}
+    <!-- 必要なinput要素等を追加 -->
+    <input type="text" name="name" placeholder="Name">
+    <input type="email" name="email" placeholder="Email">
+    <!-- submitボタン -->
+    <button onclick="submit()">Submit</button>
+{% comment %} </form> {% endcomment %}
+
+<script src="{{ 'product-reviews-form.js' | asset_url }}" defer></script>
+{% schema %}
+{
+  "name": "eviews",
+  "target": "section"
+}
+{% endschema %}
